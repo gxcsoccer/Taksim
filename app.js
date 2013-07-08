@@ -32,13 +32,17 @@ var source = fs.readFileSync(path.join(__dirname, 'source.js'), 'utf-8'),
 	ast = parser.parse(source);
 
 var wrappedCode = burrito(source, function(node) {
-	var index = nodes.length;
+	var index = nodes.length,
+		parent = node.parent();
 	if (node.name === 'call') {
 		nodes.push(node);
 		node.wrap('$$call(' + index + ')(%s)');
-	} else if (/^stat|throw|var$/.test(node.name)) {
+	} else if (/^stat|throw|var|defun$/.test(node.name)) {
 		nodes.push(node);
 		node.wrap('{ $$stat(' + index + ');%s }');
+	} else if (parent && parent.name === 'return') {
+		nodes.push(node);
+		node.wrap('$$expr(' + index + ')(%s)');
 	} else if (/^binary|unary-postfix|unary-prefix$/.test(node.name)) {
 		nodes.push(node);
 		node.wrap('$$expr(' + index + ')(%s)');
